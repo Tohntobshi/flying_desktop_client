@@ -1,0 +1,8 @@
+/build
+.vscode
+/CMakeFiles
+/cmake_install.cmake
+/CMakeCache.txt
+/flying_client
+/imgui.ini
+/Makefile
