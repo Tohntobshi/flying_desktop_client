@@ -183,7 +183,7 @@ void FrameCapturer::initEncoding(std::function<void(uint8_t *buf, int buf_size)>
   videoTrack->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
   videoTrack->time_base = (AVRational){1, 30};
   videoTrack->avg_frame_rate = (AVRational){30, 1};
-  muxerIOBuf = new uint8_t[avioBufSize];
+  muxerIOBuf = (uint8_t*)av_malloc(avioBufSize);
   muxerIO = avio_alloc_context(muxerIOBuf, avioBufSize, 1, nullptr, nullptr, staticBufferWriteCallback, nullptr);
   muxer->pb = muxerIO;
   muxer->flags = AVFMT_FLAG_CUSTOM_IO;
@@ -268,7 +268,6 @@ void FrameCapturer::captureEncodedFrame()
 void FrameCapturer::destroyEncoding()
 {
   avformat_free_context(muxer);
-  delete [] muxerIOBuf;
   avio_context_free(&muxerIO);
   sws_freeContext(swsEncCont);
   avcodec_free_context(&enC);
@@ -307,7 +306,7 @@ void FrameCapturer::initDecoding(std::function<int(uint8_t *buf, int buf_size)> 
 
   // demuxing preps
   demuxer = avformat_alloc_context();
-  demuxerIOBuf = new uint8_t[avioBufSize];
+  demuxerIOBuf = (uint8_t*)av_malloc(avioBufSize);
   demuxerIO = avio_alloc_context(demuxerIOBuf, avioBufSize, 0, nullptr, staticBufferReadCallback, nullptr, nullptr);
   demuxer->pb = demuxerIO;
   avformat_open_input(&demuxer, nullptr, nullptr, nullptr);
@@ -361,7 +360,6 @@ Frame FrameCapturer::getDecodedFrame()
 void FrameCapturer::destroyDecoding()
 {
   avformat_free_context(demuxer);
-  delete [] demuxerIOBuf;
   avio_context_free(&demuxerIO);
   sws_freeContext(swsDecCont);
   avcodec_free_context(&deC);

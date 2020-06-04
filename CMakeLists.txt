@@ -10,6 +10,8 @@ set(
     src/separateLoop.cpp
     src/window.cpp
     src/debugReceiver.cpp
+    src/packetsReceiver.cpp
+    src/frameDecoder.cpp
 )
 
 include_directories(libs/rapidjson/include)

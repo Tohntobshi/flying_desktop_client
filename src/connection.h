@@ -32,10 +32,10 @@ private:
   bool connected = false;
   std::mutex connectionMutex;
 public:
-  bool listenIP(char *port);
+  bool listenIP(const char *port);
   bool listenBT(uint8_t rfcommChannel);
-  bool connectIP(char *address, char *port);
-  bool connectBT(char *address, uint8_t rfcommChannel);
+  bool connectIP(const char *address, const char *port);
+  bool connectBT(const char *address, uint8_t rfcommChannel);
   bool sendPacket(uint8_t *data, uint32_t size); // and delete data after call yourself
   Packet receivePacket(); // and delete data yourself
   bool isConnected(); // may be called from another thread

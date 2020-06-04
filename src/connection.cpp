@@ -15,7 +15,7 @@ bdaddr_t BDADDR_ANY_VAL = {{0, 0, 0, 0, 0, 0}};
 bdaddr_t BDADDR_ALL_VAL = {{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 bdaddr_t BDADDR_LOCAL_VAL = {{0, 0, 0, 0xff, 0xff, 0xff}};
 
-bool Connection::listenIP(char *port)
+bool Connection::listenIP(const char *port)
 {
   int listeningSocket = -1;
   int isBound = -1;
@@ -119,7 +119,7 @@ bool Connection::listenBT(uint8_t rfcommChannel)
   return true;
 }
 
-bool Connection::connectIP(char *address, char *port)
+bool Connection::connectIP(const char *address, const char *port)
 {
   int isConnected = -1;
   addrinfo hints = { 0 };
@@ -156,7 +156,7 @@ bool Connection::connectIP(char *address, char *port)
   return true;
 }
 
-bool Connection::connectBT(char *address, uint8_t rfcommChannel)
+bool Connection::connectBT(const char *address, uint8_t rfcommChannel)
 {
   sockaddr_rc rem_addr = {0};
   rem_addr.rc_channel = rfcommChannel;

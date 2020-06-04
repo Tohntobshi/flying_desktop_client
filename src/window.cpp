@@ -6,13 +6,13 @@
 
 Window * Window::instance = nullptr;
 
-Window * Window::Init(ControlsSender * cs)
+Window * Window::Init(ControlsSender * cs, FrameDecoder * fd)
 {
   if (instance != nullptr)
   {
     return instance;
   }
-  instance = new Window(cs);
+  instance = new Window(cs, fd);
   return instance;
 }
 
@@ -22,16 +22,12 @@ void Window::Destroy()
   instance = nullptr;
 }
 
-Window::Window(ControlsSender * cs): controlsSender(cs)
+Window::Window(ControlsSender * cs, FrameDecoder * fd): controlsSender(cs), frameDecoder(fd)
 {
 }
 
 void Window::beforeLoop()
 {
-  while(glGetError())
-  {
-      // do nothing
-  }
   SDL_Init(SDL_INIT_VIDEO);
 
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -62,6 +58,8 @@ void Window::beforeLoop()
 
 void Window::afterLoop()
 {
+  delete [] lastFrame;
+
   glDeleteBuffers(1, &vboId);
   glDeleteShader(vertexShaderId);
   glDeleteShader(fragmentShaderId);
@@ -78,36 +76,9 @@ void Window::afterLoop()
   SDL_Quit();
 }
 
-// Window::~Window()
-// {
-//   ImGui_ImplOpenGL3_Shutdown();
-//   ImGui_ImplSDL2_Shutdown();
-//   ImGui::DestroyContext();
-//   SDL_GL_DeleteContext(glContext);
-
-//   // SDL_DestroyRenderer(renderer);
-//   // SDL_DestroyTexture(texture);
-//   SDL_DestroyWindow(window);
-//   SDL_Quit();
-// }
-
 void Window::iterate()
 {
   std::this_thread::sleep_for(std::chrono::milliseconds(30));
-  // std::unique_lock<std::mutex> frameLck(lastFrameMutex);
-  // if (lastFrame != nullptr)
-  // {
-  //   // uint8_t * data = rotate180(frameData, 8192);
-  //   SDL_UpdateTexture(texture, nullptr, lastFrame, 2 * 640);
-  //   SDL_RenderCopy(renderer, texture, NULL, NULL);
-  //   SDL_RenderPresent(renderer);
-  //   // delete data;
-  //   delete[] lastFrame;
-  //   lastFrame = nullptr;
-  // }
-  // frameLck.unlock();
-  
-
   SDL_Event event;
   while (SDL_PollEvent(&event))
   {
@@ -115,11 +86,12 @@ void Window::iterate()
     if (event.type == SDL_QUIT)
     {
       stop();
-      controlsSender->stop();
+      if (controlsSender != nullptr) controlsSender->stop();
+      if (frameDecoder != nullptr) frameDecoder->stop();
     }
     else
     {
-      controlsSender->handleEvent(event);
+      if (controlsSender != nullptr) controlsSender->handleEvent(event);
     }
   }
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -139,24 +111,37 @@ void Window::iterate()
 void Window::prepareFrame()
 {
   // create model coord
-  float coords[12] = { -1.f, -1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, -1.f, -1.f, -1.f };
+  float coords[24] = {
+    -1.f, -1.f, 0.f, 0.f,
+    -1.f, 1.f, 0.f, 1.f,
+    1.f, 1.f, 1.f, 1.f,
+    1.f, 1.f, 1.f, 1.f,
+    1.f, -1.f, 1.f, 0.f,
+    -1.f, -1.f, 0.f, 0.f,
+  };
   glGenBuffers(1, &vboId);
   glBindBuffer(GL_ARRAY_BUFFER, vboId);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, coords, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 24, coords, GL_STATIC_DRAW);
 
   // create shader
   std::string vertex = R"GLSL(
     attribute vec2 positionAttr;
+    attribute vec2 texPositionAttr;
+    varying vec2 texPos;
     void main()
     {
+      texPos = texPositionAttr;
       gl_Position = vec4(positionAttr, 0.0, 1.0);
     }
   )GLSL";
   std::string fragment = R"GLSL(
     precision mediump float;
+    varying vec2 texPos;
+    uniform sampler2D tex;
     void main()
     {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+      vec4 color = texture2D(tex, texPos);
+      gl_FragColor = color;
     }
   )GLSL";
   const char* _vertexSource = vertex.c_str();
@@ -175,27 +160,45 @@ void Window::prepareFrame()
   glLinkProgram(shaderId);
 
   posAttrLoc = glGetAttribLocation(shaderId, "positionAttr");
+  texPosAttrLoc = glGetAttribLocation(shaderId, "texPositionAttr");
   glEnableVertexAttribArray(posAttrLoc);
+  glEnableVertexAttribArray(texPosAttrLoc);
 }
 
 void Window::drawFrame()
 {
+  //   SDL_UpdateTexture(texture, nullptr, lastFrame, 2 * 640);
+  //   SDL_RenderCopy(renderer, texture, NULL, NULL);
+  //   SDL_RenderPresent(renderer);
   glUseProgram(shaderId);
   glBindBuffer(GL_ARRAY_BUFFER, vboId);
-  glVertexAttribPointer(posAttrLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), NULL);
+  glVertexAttribPointer(posAttrLoc, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
+  glVertexAttribPointer(texPosAttrLoc, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
 
-  // glGenTextures(1, &texture);
-  // glBindTexture(GL_TEXTURE_2D, texture);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-  // glBindTexture(GL_TEXTURE_2D, texture);
+  if (frameDecoder != nullptr) {
+    uint8_t * lastFr = frameDecoder->getLastFrame();
+    if (lastFr != nullptr)
+    {
+      delete [] lastFrame;
+      lastFrame = lastFr;
+    }
+  }
+  if (lastFrame != nullptr)
+  {
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, lastFrame);
+    glBindTexture(GL_TEXTURE_2D, texture);
+  }
 
-  glDrawArrays(GL_TRIANGLES, 0, 12);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 
-  // glDeleteTextures(1, &texture);
+  glDeleteTextures(1, &texture);
 }
 
 void Window::drawGUI()
