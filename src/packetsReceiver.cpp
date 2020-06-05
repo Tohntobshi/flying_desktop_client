@@ -1,30 +1,6 @@
 #include "packetsReceiver.h"
 #include <iostream>
 
-PacketsReceiver::PacketsReceiver(std::string ipAddr, std::string p):
-addr(ipAddr), port(p), type(connectIP)
-{
-
-}
-
-PacketsReceiver::PacketsReceiver(std::string btAddr, uint8_t ch):
-addr(btAddr), channel(ch), type(connectBT)
-{
-
-}
-
-PacketsReceiver::PacketsReceiver(std::string p):
-port(p), type(listenIP)
-{
-
-}
-
-PacketsReceiver::PacketsReceiver(uint8_t ch):
-channel(ch), type(listenBT)
-{
-
-}
-
 void PacketsReceiver::iterate()
 {
   bool connected = false;
@@ -74,7 +50,6 @@ void PacketsReceiver::onStop()
 
 Packet PacketsReceiver::getPacket(bool blockIfNoData)
 {
-  
   std::unique_lock<std::mutex> packetsLck(packetsMutex);
   if (packetsList.size() == 0)
   {

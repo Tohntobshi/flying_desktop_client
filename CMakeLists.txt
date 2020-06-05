@@ -12,6 +12,8 @@ set(
     src/debugReceiver.cpp
     src/packetsReceiver.cpp
     src/frameDecoder.cpp
+    src/packetsSender.cpp
+    src/packetsTransmitter.cpp
 )
 
 include_directories(libs/rapidjson/include)

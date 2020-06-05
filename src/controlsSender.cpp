@@ -1,14 +1,20 @@
 #include "controlsSender.h"
 #include <iostream>
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
+using namespace rapidjson;
 
 void ControlsSender::setControl(uint8_t control, bool unique)
 {
-  std::unique_lock<std::mutex> lck(lcMtx);
-  if (lastControl != control || !unique)
-  {
-    lastControl = control;
-    cd.notify_all();
+  if (unique) {
+    std::unique_lock<std::mutex> lck(mtx);
+    if (lastUniqueControl == control) return;
+    lastUniqueControl = control;
+    lck.unlock();
   }
+  sendCommand(control);
 }
 
 void ControlsSender::handleEvent(SDL_Event & event)
@@ -78,34 +84,36 @@ void ControlsSender::handleEvent(SDL_Event & event)
   }
 }
 
-uint8_t * ControlsSender::getControl()
+void ControlsSender::sendCommand(uint8_t key)
 {
-  std::unique_lock<std::mutex> lck(mtx);
-  cd.wait(lck);
-  std::unique_lock<std::mutex> lck2(lcMtx);
-  uint8_t * cont = new uint8_t[1];
-  *cont = lastControl;
-  return cont;
+  Document d;
+  Value& rootObj = d.SetObject();
+  rootObj.AddMember("t", key, d.GetAllocator());
+  StringBuffer buffer;
+  Writer<StringBuffer> writer(buffer);
+  d.Accept(writer);
+  const char * json = buffer.GetString();
+  uint32_t size = buffer.GetSize();
+  uint8_t * buf = new uint8_t[size + 1];
+  memcpy(buf, json, size);
+  buf[size] = 0;
+  sendPacket({ buf, size + 1 }, IGNORE_IF_NO_CONN);
 }
 
-void ControlsSender::iterate()
+template<typename T>
+void ControlsSender::sendValue(uint8_t key, T val)
 {
-  if (!conn.connectIP("192.168.1.5","8081"))
-  {
-    std::cout << "sending commands not connected, retry in 3 seconds...\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-    return;
-  }
-  while (!shouldStop())
-  {
-    uint8_t* c = getControl();
-    bool sent = conn.sendPacket(c, 1);
-    delete [] c;
-    if (!sent) return;
-  }
-}
-
-void ControlsSender::onStop()
-{
-  cd.notify_all();
+  Document d;
+  Value& rootObj = d.SetObject();
+  rootObj.AddMember("t", key, d.GetAllocator());
+  rootObj.AddMember("v", val, d.GetAllocator());
+  StringBuffer buffer;
+  Writer<StringBuffer> writer(buffer);
+  d.Accept(writer);
+  const char * json = buffer.GetString();
+  uint32_t size = buffer.GetSize();
+  uint8_t * buf = new uint8_t[size + 1];
+  memcpy(buf, json, size);
+  buf[size] = 0;
+  sendPacket({ buf, size + 1 }, IGNORE_IF_NO_CONN);
 }

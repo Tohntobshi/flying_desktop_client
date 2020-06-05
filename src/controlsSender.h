@@ -2,21 +2,18 @@
 #include <stdint.h>
 #include <condition_variable>
 #include <SDL2/SDL.h>
-#include "constants.h"
-#include "separateLoop.h"
-#include "connection.h"
+#include "actions.h"
+#include "packetsSender.h"
 
-class ControlsSender: public SeparateLoop {
-private:
-  Connection conn;
-  uint8_t lastControl = 0;
-  std::mutex lcMtx;
+class ControlsSender: public PacketsSender {
+  uint8_t lastUniqueControl = 0;
   std::mutex mtx;
-  std::condition_variable cd;
-  uint8_t* getControl();
-  void iterate();
-  void onStop();
 public:
+  using PacketsSender::PacketsSender;
   void setControl(uint8_t control, bool unique);
   void handleEvent(SDL_Event & event);
+  void updateProportionalCoef(float value);
+  void sendCommand(uint8_t key);
+  template<typename T>
+  void sendValue(uint8_t key, T value);
 };

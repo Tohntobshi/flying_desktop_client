@@ -1,30 +1,6 @@
 #include "packetsSender.h"
 #include <iostream>
 
-PacketsSender::PacketsSender(std::string ipAddr, std::string p):
-addr(ipAddr), port(p), type(connectIP)
-{
-
-}
-
-PacketsSender::PacketsSender(std::string btAddr, uint8_t ch):
-addr(btAddr), channel(ch), type(connectBT)
-{
-
-}
-
-PacketsSender::PacketsSender(std::string p):
-port(p), type(listenIP)
-{
-
-}
-
-PacketsSender::PacketsSender(uint8_t ch):
-channel(ch), type(listenBT)
-{
-
-}
-
 void PacketsSender::iterate()
 {
   bool connected = false;

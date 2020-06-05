@@ -16,7 +16,7 @@ int main()
   // FrameDecoder frameDecoder;
   // frameDecoder.start();
 
-  ControlsSender controlSender;
+  ControlsSender controlSender("192.168.1.5", "8081");
   controlSender.start();
 
   Window * window = Window::Init(&controlSender, nullptr, &debugReceiver);
