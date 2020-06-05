@@ -6,13 +6,13 @@
 
 Window * Window::instance = nullptr;
 
-Window * Window::Init(ControlsSender * cs, FrameDecoder * fd)
+Window * Window::Init(ControlsSender * cs, FrameDecoder * fd, DebugReceiver * dr)
 {
   if (instance != nullptr)
   {
     return instance;
   }
-  instance = new Window(cs, fd);
+  instance = new Window(cs, fd, dr);
   return instance;
 }
 
@@ -22,7 +22,7 @@ void Window::Destroy()
   instance = nullptr;
 }
 
-Window::Window(ControlsSender * cs, FrameDecoder * fd): controlsSender(cs), frameDecoder(fd)
+Window::Window(ControlsSender * cs, FrameDecoder * fd, DebugReceiver * dr): controlsSender(cs), frameDecoder(fd), debugReceiver(dr)
 {
 }
 
@@ -88,6 +88,7 @@ void Window::iterate()
       stop();
       if (controlsSender != nullptr) controlsSender->stop();
       if (frameDecoder != nullptr) frameDecoder->stop();
+      if (debugReceiver != nullptr) debugReceiver->stop();
     }
     else
     {
@@ -99,9 +100,9 @@ void Window::iterate()
   ImGui_ImplSDL2_NewFrame(window);
   ImGui::NewFrame();
 
+  updatePlots();
   drawFrame();
-  // drawGUI();
-  ImGui::ShowDemoWindow();
+  drawGUI();
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -203,14 +204,36 @@ void Window::drawFrame()
 
 void Window::drawGUI()
 {
-  ImGui::Begin("Controls");
-  if (ImGui::CollapsingHeader("Title"))
-  {
-    ImGui::InputText("some input", someInput, sizeof(char) * 128);
-    if (ImGui::Button("Button"))
-    {
+  // ImGui::ShowDemoWindow();
+  ImGui::Begin("Plots");
+  ImGui::PlotLines("pitch error", pitchPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
+  ImGui::PlotLines("roll error", rollPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
+  // if (ImGui::CollapsingHeader("Title"))
+  // {
+    
+  //   // ImGui::InputText("some input", someInput, sizeof(char) * 128);
+  //   // if (ImGui::Button("Button"))
+  //   // {
       
-    }
-  }
+  //   // }
+  // }
   ImGui::End();
+}
+
+void Window::updatePlots()
+{
+  while (true && debugReceiver != nullptr)
+  {
+    DebugInfo info = debugReceiver->getInfo();
+    if (info.noMoreInfo) break;
+    for (int i = 0; i < plotLength; i++)
+    {
+      if (i == 0) continue;
+      pitchPlot[i - 1] = pitchPlot[i];
+      rollPlot[i - 1] = rollPlot[i];
+    }
+    pitchPlot[plotLength - 1] = info.pitchError;
+    rollPlot[plotLength - 1] = info.rollError;
+  }
+  
 }

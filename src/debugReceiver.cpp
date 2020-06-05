@@ -1,30 +1,22 @@
 #include "debugReceiver.h"
 #include <iostream>
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
+using namespace rapidjson;
 
-void DebugReceiver::iterate()
+DebugInfo DebugReceiver::getInfo()
 {
-  if (!conn.connectIP("192.168.1.5","8082"))
+  Packet pk = getPacket(false);
+  if (pk.size == 0)
   {
-    std::cout << "debug receiver: not connected, retry in 3 seconds...\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-    return;
+    return { true, 0.f, 0.f };
   }
-  while (!shouldStop())
-  {
-    Packet packet = conn.receivePacket();
-    if (packet.size == 0)
-    {
-      return;
-    }
-    else
-    {
-      delete [] packet.data;
-    }
-  }
-}
-
-void DebugReceiver::onStop()
-{
-  conn.abortListenAndReceive();
+  Document d;
+  d.Parse((char *)pk.data);
+  float pitchErr = d["pitchErr"].GetFloat();
+  float rollErr = d["rollErr"].GetFloat();
+  delete [] pk.data;
+  return { false, pitchErr, rollErr };
 }

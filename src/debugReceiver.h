@@ -1,15 +1,15 @@
 #pragma once
 #include <stdint.h>
-#include "separateLoop.h"
-#include "connection.h"
-#include "rapidjson/document.h"
+#include "packetsReceiver.h"
 
-class DebugReceiver: public SeparateLoop {
-private:
-  Connection conn;
-  // std::mutex mtx;
-  void iterate();
-  void onStop();
+struct DebugInfo {
+  bool noMoreInfo;
+  float pitchError;
+  float rollError;
+};
+
+class DebugReceiver: public PacketsReceiver {
 public:
-  void getData();
+  using PacketsReceiver::PacketsReceiver;
+  DebugInfo getInfo();
 };

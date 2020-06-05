@@ -4,18 +4,22 @@
 #include "controlsSender.h"
 #include "window.h"
 #include "signal.h"
+#include "debugReceiver.h"
 
 int main()
 {
   signal(SIGPIPE, SIG_IGN);
 
-  FrameDecoder frameDecoder;
-  frameDecoder.start();
+  DebugReceiver debugReceiver("192.168.1.5", "8082");
+  debugReceiver.start();
+
+  // FrameDecoder frameDecoder;
+  // frameDecoder.start();
 
   ControlsSender controlSender;
   controlSender.start();
 
-  Window * window = Window::Init(&controlSender, &frameDecoder);
+  Window * window = Window::Init(&controlSender, nullptr, &debugReceiver);
 
   window->start();
   
@@ -24,6 +28,8 @@ int main()
 
   controlSender.join();
 
-  frameDecoder.join();
+  // frameDecoder.join();
+
+  debugReceiver.join();
   return 0;
 }
