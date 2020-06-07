@@ -79,6 +79,7 @@ void Window::afterLoop()
 void Window::iterate()
 {
   std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  compareControlledValsAndSendCommands();
   SDL_Event event;
   while (SDL_PollEvent(&event))
   {
@@ -205,18 +206,30 @@ void Window::drawFrame()
 void Window::drawGUI()
 {
   // ImGui::ShowDemoWindow();
-  ImGui::Begin("Plots");
+
+  ImGui::Begin("Controls");
   ImGui::PlotLines("pitch error", pitchPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
   ImGui::PlotLines("roll error", rollPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
-  // if (ImGui::CollapsingHeader("Title"))
-  // {
-    
-  //   // ImGui::InputText("some input", someInput, sizeof(char) * 128);
-  //   // if (ImGui::Button("Button"))
-  //   // {
-      
-  //   // }
-  // }
+  ImGui::DragFloat("prop coef", &contVals.proportionalCoef, 0.005f);
+  ImGui::DragFloat("der coef", &contVals.derivativeCoef, 0.005f);
+  ImGui::DragFloat("int coef", &contVals.integralCoef, 0.005f);
+  ImGui::DragFloat("pitch bias", &contVals.pitchBias, 0.005f);
+  ImGui::DragFloat("roll bias", &contVals.rollBias, 0.005f);
+  ImGui::SliderFloat("acc trust", &contVals.accTrust, 0.f, 1.f);
+  ImGui::SliderFloat("prevValInf", &contVals.prevValInfluence, 0.f, 1.f);
+  ImGui::SliderInt("rpm val", &contVals.rpmVal, 1000, 2000, "rpm %d");
+  if (ImGui::Button("Reset"))
+  {
+    resetContValues();
+  }
+  if (ImGui::Button("Arm") && controlsSender != nullptr)
+  {
+    controlsSender->sendCommand(ARM);
+  }
+  if (ImGui::Button("Calibrate") && controlsSender != nullptr)
+  {
+    controlsSender->sendCommand(CALIBRATE);
+  }
   ImGui::End();
 }
 
@@ -235,5 +248,55 @@ void Window::updatePlots()
     pitchPlot[plotLength - 1] = info.pitchError;
     rollPlot[plotLength - 1] = info.rollError;
   }
-  
+}
+
+void Window::compareControlledValsAndSendCommands()
+{
+  if (controlsSender == nullptr) return;
+  if (prevContVals.proportionalCoef != contVals.proportionalCoef)
+  {
+    controlsSender->sendValue(SET_PROP_COEF, contVals.proportionalCoef);
+    prevContVals.proportionalCoef = contVals.proportionalCoef;
+  }
+  if (prevContVals.derivativeCoef != contVals.derivativeCoef)
+  {
+    controlsSender->sendValue(SET_DER_COEF, contVals.derivativeCoef);
+    prevContVals.derivativeCoef = contVals.derivativeCoef;
+  }
+  if (prevContVals.integralCoef != contVals.integralCoef)
+  {
+    controlsSender->sendValue(SET_INT_COEF, contVals.integralCoef);
+    prevContVals.integralCoef = contVals.integralCoef;
+  }
+  if (prevContVals.pitchBias != contVals.pitchBias)
+  {
+    controlsSender->sendValue(SET_PITCH_BIAS, contVals.pitchBias);
+    prevContVals.pitchBias = contVals.pitchBias;
+  }
+  if (prevContVals.rollBias != contVals.rollBias)
+  {
+    controlsSender->sendValue(SET_ROLL_BIAS, contVals.rollBias);
+    prevContVals.rollBias = contVals.rollBias;
+  }
+  if (prevContVals.rpmVal != contVals.rpmVal)
+  {
+    controlsSender->sendValue(SET_RPM, contVals.rpmVal);
+    prevContVals.rpmVal = contVals.rpmVal;
+  }
+  if (prevContVals.accTrust != contVals.accTrust)
+  {
+    controlsSender->sendValue(SET_ACC_TRUST, contVals.accTrust);
+    prevContVals.accTrust = contVals.accTrust;
+  }
+  if (prevContVals.prevValInfluence != contVals.prevValInfluence)
+  {
+    controlsSender->sendValue(SET_PREV_VAL_INF, contVals.prevValInfluence);
+    prevContVals.prevValInfluence = contVals.prevValInfluence;
+  }
+}
+
+void Window::resetContValues()
+{
+  ControlledValues cont;
+  contVals = cont;
 }

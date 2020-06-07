@@ -23,27 +23,6 @@ void ControlsSender::handleEvent(SDL_Event & event)
   {
     switch (event.key.keysym.scancode)
     {
-    case SDL_SCANCODE_W:
-      setControl(INCREASE, false);
-      break;
-    case SDL_SCANCODE_S:
-      setControl(DECREASE, false);
-      break;
-    case SDL_SCANCODE_Q:
-      setControl(INCREASE_PROP_COEF, false);
-      break;
-    case SDL_SCANCODE_A:
-      setControl(DECREASE_PROP_COEF, false);
-      break;
-    case SDL_SCANCODE_E:
-      setControl(INCREASE_DER_COEF, false);
-      break;
-    case SDL_SCANCODE_D:
-      setControl(DECREASE_DER_COEF, false);
-      break;
-    case SDL_SCANCODE_SPACE:
-      setControl(STOP_MOVING, false);
-      break;
     case SDL_SCANCODE_I:
       setControl(INCLINE_FORW, true);
       break;
@@ -55,18 +34,6 @@ void ControlsSender::handleEvent(SDL_Event & event)
       break;
     case SDL_SCANCODE_L:
       setControl(INCLINE_RIGHT, true);
-      break;
-    case SDL_SCANCODE_T:
-      setControl(INCREASE_PITCH_BIAS, false);
-      break;
-    case SDL_SCANCODE_G:
-      setControl(DECREASE_PITCH_BIAS, false);
-      break;
-    case SDL_SCANCODE_H:
-      setControl(INCREASE_ROLL_BIAS, false);
-      break;
-    case SDL_SCANCODE_F:
-      setControl(DECREASE_ROLL_BIAS, false);
       break;
     }
   }
@@ -101,7 +68,7 @@ void ControlsSender::sendCommand(uint8_t key)
 }
 
 template<typename T>
-void ControlsSender::sendValue(uint8_t key, T val)
+void ControlsSender::_sendValue(uint8_t key, T val)
 {
   Document d;
   Value& rootObj = d.SetObject();
@@ -116,4 +83,14 @@ void ControlsSender::sendValue(uint8_t key, T val)
   memcpy(buf, json, size);
   buf[size] = 0;
   sendPacket({ buf, size + 1 }, IGNORE_IF_NO_CONN);
+}
+
+void ControlsSender::sendValue(uint8_t key, int value)
+{
+  _sendValue(key, value);
+}
+
+void ControlsSender::sendValue(uint8_t key, float value)
+{
+  _sendValue(key, value);
 }

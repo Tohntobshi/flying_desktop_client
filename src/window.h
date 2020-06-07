@@ -7,6 +7,16 @@
 #include "frameDecoder.h"
 #include "debugReceiver.h"
 
+struct ControlledValues {
+  float proportionalCoef = 0.5f;
+  float derivativeCoef = 0.f;
+  float integralCoef = 0.f;
+  float pitchBias = 0.f;
+  float rollBias = 0.f;
+  int rpmVal = 1000;
+  float accTrust = 0.1f;
+  float prevValInfluence = 0.f; 
+};
 
 class Window: public SeparateLoop {
 public:
@@ -40,7 +50,14 @@ private:
   GLint texPosAttrLoc = 0;
   GLuint texture = 0;
   uint8_t * lastFrame = nullptr;
+
+
   int plotLength = 90;
   float pitchPlot[90] = { 0 };
   float rollPlot[90] = { 0 };
+
+  ControlledValues contVals;
+  ControlledValues prevContVals;
+  void compareControlledValsAndSendCommands();
+  void resetContValues();
 };
