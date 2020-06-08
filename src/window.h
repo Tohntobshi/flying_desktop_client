@@ -41,7 +41,8 @@ private:
   void drawGUI();
   void updatePlots();
   void drawFrame();
-  char someInput[128];
+  void handleEvent(SDL_Event& e);
+  // char someInput[128];
   GLuint vboId = 0;
   GLuint vertexShaderId = 0;
   GLuint fragmentShaderId = 0;
@@ -55,6 +56,10 @@ private:
   int plotLength = 90;
   float pitchPlot[90] = { 0 };
   float rollPlot[90] = { 0 };
+  float pitchErChRPlot[90] = { 0 };
+  float rollErChRPlot[90] = { 0 };
+  float pitchChRPlot[90] = { 0 };
+  float rollChRPlot[90] = { 0 };
 
   ControlledValues contVals;
   ControlledValues prevContVals;

@@ -6,6 +6,10 @@ struct DebugInfo {
   bool noMoreInfo;
   float pitchError;
   float rollError;
+  float pitchErrorChangeRate;
+  float rollErrorChangeRate;
+  float pitchChangeRate;
+  float rollChangeRate;
 };
 
 class DebugReceiver: public PacketsReceiver {

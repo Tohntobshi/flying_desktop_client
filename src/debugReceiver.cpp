@@ -11,12 +11,16 @@ DebugInfo DebugReceiver::getInfo()
   Packet pk = getPacket(false);
   if (pk.size == 0)
   {
-    return { true, 0.f, 0.f };
+    return { true, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
   }
   Document d;
   d.Parse((char *)pk.data);
-  float pitchErr = d["pitchErr"].GetFloat();
-  float rollErr = d["rollErr"].GetFloat();
+  float pitchErr = d["pe"].GetFloat();
+  float rollErr = d["re"].GetFloat();
+  float pitchErrChR = d["peChR"].GetFloat();
+  float rollErrChR = d["reChR"].GetFloat();
+  float pitchChR = d["pChR"].GetFloat();
+  float rollChR = d["rChR"].GetFloat();
   delete [] pk.data;
-  return { false, pitchErr, rollErr };
+  return { false, pitchErr, rollErr, pitchErrChR, rollErrChR, pitchChR, rollChR };
 }

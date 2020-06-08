@@ -80,22 +80,10 @@ void Window::iterate()
 {
   std::this_thread::sleep_for(std::chrono::milliseconds(30));
   compareControlledValsAndSendCommands();
+
   SDL_Event event;
-  while (SDL_PollEvent(&event))
-  {
-    ImGui_ImplSDL2_ProcessEvent(&event);
-    if (event.type == SDL_QUIT)
-    {
-      stop();
-      if (controlsSender != nullptr) controlsSender->stop();
-      if (frameDecoder != nullptr) frameDecoder->stop();
-      if (debugReceiver != nullptr) debugReceiver->stop();
-    }
-    else
-    {
-      if (controlsSender != nullptr) controlsSender->handleEvent(event);
-    }
-  }
+  while (SDL_PollEvent(&event)) handleEvent(event);
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplSDL2_NewFrame(window);
@@ -207,16 +195,17 @@ void Window::drawGUI()
 {
   // ImGui::ShowDemoWindow();
 
-  ImGui::Begin("Controls");
+  ImGui::Begin("Plots");
   ImGui::PlotLines("pitch error", pitchPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
   ImGui::PlotLines("roll error", rollPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
+  ImGui::PlotLines("pitch error change rate", pitchErChRPlot, plotLength, 0, nullptr, -180.0f, 180.0f, ImVec2(0,80));
+  ImGui::PlotLines("roll error change rate", rollErChRPlot, plotLength, 0, nullptr, -180.0f, 180.0f, ImVec2(0,80));
+  ImGui::PlotLines("pitch change rate", pitchChRPlot, plotLength, 0, nullptr, -180.0f, 180.0f, ImVec2(0,80));
+  ImGui::PlotLines("roll change rate", rollChRPlot, plotLength, 0, nullptr, -180.0f, 180.0f, ImVec2(0,80));
   ImGui::DragFloat("prop coef", &contVals.proportionalCoef, 0.005f);
   ImGui::DragFloat("der coef", &contVals.derivativeCoef, 0.005f);
   ImGui::DragFloat("int coef", &contVals.integralCoef, 0.005f);
-  ImGui::DragFloat("pitch bias", &contVals.pitchBias, 0.005f);
-  ImGui::DragFloat("roll bias", &contVals.rollBias, 0.005f);
-  ImGui::SliderFloat("acc trust", &contVals.accTrust, 0.f, 1.f);
-  ImGui::SliderFloat("prevValInf", &contVals.prevValInfluence, 0.f, 1.f);
+  
   ImGui::SliderInt("rpm val", &contVals.rpmVal, 1000, 2000, "rpm %d");
   if (ImGui::Button("Reset"))
   {
@@ -231,6 +220,14 @@ void Window::drawGUI()
     controlsSender->sendCommand(CALIBRATE);
   }
   ImGui::End();
+  ImGui::Begin("incline adjust");
+  ImGui::DragFloat("pitch bias", &contVals.pitchBias, 0.005f);
+  ImGui::DragFloat("roll bias", &contVals.rollBias, 0.005f);
+  ImGui::End();
+  ImGui::Begin("reducing noise");
+  ImGui::SliderFloat("acc trust", &contVals.accTrust, 0.f, 1.f);
+  ImGui::SliderFloat("prevValInf", &contVals.prevValInfluence, 0.f, 1.f);
+  ImGui::End();
 }
 
 void Window::updatePlots()
@@ -244,9 +241,17 @@ void Window::updatePlots()
       if (i == 0) continue;
       pitchPlot[i - 1] = pitchPlot[i];
       rollPlot[i - 1] = rollPlot[i];
+      pitchErChRPlot[i - 1] = pitchErChRPlot[i];
+      rollErChRPlot[i - 1] = rollErChRPlot[i];
+      pitchChRPlot[i - 1] = pitchChRPlot[i];
+      rollChRPlot[i - 1] = rollChRPlot[i];
     }
     pitchPlot[plotLength - 1] = info.pitchError;
     rollPlot[plotLength - 1] = info.rollError;
+    pitchErChRPlot[plotLength - 1] = info.pitchErrorChangeRate;
+    rollErChRPlot[plotLength - 1] = info.rollErrorChangeRate;
+    pitchChRPlot[plotLength - 1] = info.pitchChangeRate;
+    rollChRPlot[plotLength - 1] = info.rollChangeRate;
   }
 }
 
@@ -299,4 +304,20 @@ void Window::resetContValues()
 {
   ControlledValues cont;
   contVals = cont;
+}
+
+void Window::handleEvent(SDL_Event & e)
+{
+  ImGui_ImplSDL2_ProcessEvent(&e);
+  if (e.type == SDL_QUIT)
+  {
+    stop();
+    if (controlsSender != nullptr) controlsSender->stop();
+    if (frameDecoder != nullptr) frameDecoder->stop();
+    if (debugReceiver != nullptr) debugReceiver->stop();
+    return;
+  }
+  if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_SPACE && !io.WantCaptureKeyboard) contVals.rpmVal = 1000;
+  if (controlsSender == nullptr) return;
+  controlsSender->handleEvent(e);
 }
