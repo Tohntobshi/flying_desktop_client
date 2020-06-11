@@ -10,13 +10,13 @@ int main()
 {
   signal(SIGPIPE, SIG_IGN);
 
-  DebugReceiver debugReceiver("192.168.1.5", "8082");
+  DebugReceiver debugReceiver("192.168.1.3", "8082");
   debugReceiver.start();
 
   // FrameDecoder frameDecoder;
   // frameDecoder.start();
 
-  ControlsSender controlSender("192.168.1.5", "8081");
+  ControlsSender controlSender("192.168.1.3", "8081");
   controlSender.start();
 
   Window * window = Window::Init(&controlSender, nullptr, &debugReceiver);

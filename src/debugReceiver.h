@@ -8,8 +8,8 @@ struct DebugInfo {
   float rollError;
   float pitchErrorChangeRate;
   float rollErrorChangeRate;
-  float pitchChangeRate;
-  float rollChangeRate;
+  float yawSpeedError;
+  float yawSpeedErrorChangeRate;
 };
 
 class DebugReceiver: public PacketsReceiver {

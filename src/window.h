@@ -8,14 +8,30 @@
 #include "debugReceiver.h"
 
 struct ControlledValues {
-  float proportionalCoef = 0.5f;
-  float derivativeCoef = 0.f;
-  float integralCoef = 0.f;
+  int baseVal = 0;
+
+  float pitchPropCoef = 0.f;
+  float pitchDerCoef = 0.f;
+  float pitchIntCoef = 0.f;
+
+  float rollPropCoef = 0.f;
+  float rollDerCoef = 0.f;
+  float rollIntCoef = 0.f;
+
+  float yawSpPropCoef = 0.0f;
+  float yawSpDerCoef = 0.f;
+  float yawSpIntCoef = 0.f;
+
   float pitchBias = 0.f;
   float rollBias = 0.f;
-  int rpmVal = 1000;
+  float yawSpeedBias = 0.f;
+
   float accTrust = 0.1f;
-  float prevValInfluence = 0.f; 
+  float inclineChangeRateFilteringCoef = 0.f;
+  float yawSpeedFilteringCoef = 0.f;
+  float yawSpeedChangeRateFilteringCoef = 0.f;
+
+  bool onlyPositiveAdjustMode = true;
 };
 
 class Window: public SeparateLoop {
@@ -42,7 +58,6 @@ private:
   void updatePlots();
   void drawFrame();
   void handleEvent(SDL_Event& e);
-  // char someInput[128];
   GLuint vboId = 0;
   GLuint vertexShaderId = 0;
   GLuint fragmentShaderId = 0;
@@ -54,12 +69,12 @@ private:
 
 
   int plotLength = 90;
-  float pitchPlot[90] = { 0 };
-  float rollPlot[90] = { 0 };
+  float pitchErPlot[90] = { 0 };
+  float rollErPlot[90] = { 0 };
   float pitchErChRPlot[90] = { 0 };
   float rollErChRPlot[90] = { 0 };
-  float pitchChRPlot[90] = { 0 };
-  float rollChRPlot[90] = { 0 };
+  float yawSpErPlot[90] = { 0 };
+  float yawSpErChRPlot[90] = { 0 };
 
   ControlledValues contVals;
   ControlledValues prevContVals;

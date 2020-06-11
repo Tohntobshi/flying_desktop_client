@@ -19,8 +19,8 @@ DebugInfo DebugReceiver::getInfo()
   float rollErr = d["re"].GetFloat();
   float pitchErrChR = d["peChR"].GetFloat();
   float rollErrChR = d["reChR"].GetFloat();
-  float pitchChR = d["pChR"].GetFloat();
-  float rollChR = d["rChR"].GetFloat();
+  float yawSpErr = d["ySE"].GetFloat();
+  float yawSpErrChR = d["ySEChR"].GetFloat();
   delete [] pk.data;
-  return { false, pitchErr, rollErr, pitchErrChR, rollErrChR, pitchChR, rollChR };
+  return { false, pitchErr, rollErr, pitchErrChR, rollErrChR, yawSpErr, yawSpErrChR };
 }

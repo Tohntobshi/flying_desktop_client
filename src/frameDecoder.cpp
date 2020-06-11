@@ -3,7 +3,7 @@
 
 void FrameDecoder::beforeLoop()
 {
-  packetsReceiver = new PacketsReceiver("192.168.1.5", "8080");
+  packetsReceiver = new PacketsReceiver("192.168.1.3", "8080");
   packetsReceiver->start();
   frameCapt = FrameCapturer::Init();
   frameCapt->initEncDecLib();
