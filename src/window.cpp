@@ -1,6 +1,13 @@
 #include "window.h"
 #include "imgui/imgui_impl_sdl.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include <fstream>
+#include <string>
+#include <iostream>
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
 #define GL_GLEXT_PROTOTYPES 1
 
 
@@ -199,9 +206,9 @@ void Window::drawGUI()
     ImGui::PlotLines("pitch error", pitchErPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
     ImGui::Text("pitch error change rate: %f", pitchErChRPlot[plotLength - 1]);
     ImGui::PlotLines("pitch error change rate", pitchErChRPlot, plotLength, 0, nullptr, -180.0f, 180.0f, ImVec2(0,80));
-    ImGui::DragFloat("incline prop coef", &contVals.pitchPropCoef, 0.005f);
-    ImGui::DragFloat("incline der coef", &contVals.pitchDerCoef, 0.005f);
-    ImGui::DragFloat("incline int coef", &contVals.pitchIntCoef, 0.005f);
+    ImGui::DragFloat("pitch prop coef", &contVals.pitchPropCoef, 0.005f);
+    ImGui::DragFloat("pitch der coef", &contVals.pitchDerCoef, 0.005f);
+    ImGui::DragFloat("pitch int coef", &contVals.pitchIntCoef, 0.005f);
     ImGui::DragFloat("pitch bias", &contVals.pitchBias, 0.005f);
   ImGui::End();
 
@@ -210,9 +217,9 @@ void Window::drawGUI()
     ImGui::PlotLines("roll error", rollErPlot, plotLength, 0, nullptr, -90.0f, 90.0f, ImVec2(0,80));
     ImGui::Text("pitch error: %f", rollErChRPlot[plotLength - 1]);
     ImGui::PlotLines("roll error change rate", rollErChRPlot, plotLength, 0, nullptr, -180.0f, 180.0f, ImVec2(0,80));
-    ImGui::DragFloat("incline prop coef", &contVals.rollPropCoef, 0.005f);
-    ImGui::DragFloat("incline der coef", &contVals.rollDerCoef, 0.005f);
-    ImGui::DragFloat("incline int coef", &contVals.rollIntCoef, 0.005f);
+    ImGui::DragFloat("roll prop coef", &contVals.rollPropCoef, 0.005f);
+    ImGui::DragFloat("roll der coef", &contVals.rollDerCoef, 0.005f);
+    ImGui::DragFloat("roll int coef", &contVals.rollIntCoef, 0.005f);
     ImGui::DragFloat("roll bias", &contVals.rollBias, 0.005f);
   ImGui::End();
 
@@ -250,6 +257,19 @@ void Window::drawGUI()
     ImGui::SliderFloat("incline err ch rate filter", &contVals.inclineChangeRateFilteringCoef, 0.f, 1.f);
     ImGui::SliderFloat("yaw sp filter", &contVals.yawSpeedFilteringCoef, 0.f, 1.f);
     ImGui::SliderFloat("yaw sp err ch rate filter", &contVals.yawSpeedChangeRateFilteringCoef, 0.f, 1.f);
+  ImGui::End();
+
+  ImGui::Begin("profile");
+    ImGui::InputText("file", filename, 128);
+    if (ImGui::Button("save"))
+    {
+      saveProfile();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("load"))
+    {
+      loadProfile();
+    }
   ImGui::End();
 }
 
@@ -406,4 +426,97 @@ void Window::handleEvent(SDL_Event & e)
   if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_SPACE && !io.WantCaptureKeyboard) contVals.baseVal = 1000;
   if (controlsSender == nullptr) return;
   controlsSender->handleEvent(e);
+}
+
+void Window::saveProfile()
+{
+  using namespace rapidjson;
+  std::string fname = filename;
+  fname = "profiles/" + fname;
+  std::ofstream file;
+  file.open(fname, std::ofstream::out | std::ofstream::trunc);
+  if (!file.is_open())
+  {
+    std::cout << "can't open file " << fname << "\n";
+    return;
+  }
+
+  Document d;
+  Value& rootObj = d.SetObject();
+  rootObj.AddMember("pitchPropCoef", contVals.pitchPropCoef, d.GetAllocator());
+  rootObj.AddMember("pitchDerCoef", contVals.pitchDerCoef, d.GetAllocator());
+  rootObj.AddMember("pitchIntCoef", contVals.pitchIntCoef, d.GetAllocator());
+
+  rootObj.AddMember("rollPropCoef", contVals.rollPropCoef, d.GetAllocator());
+  rootObj.AddMember("rollDerCoef", contVals.rollDerCoef, d.GetAllocator());
+  rootObj.AddMember("rollIntCoef", contVals.rollIntCoef, d.GetAllocator());
+
+  rootObj.AddMember("yawSpPropCoef", contVals.yawSpPropCoef, d.GetAllocator());
+  rootObj.AddMember("yawSpDerCoef", contVals.yawSpDerCoef, d.GetAllocator());
+  rootObj.AddMember("yawSpIntCoef", contVals.yawSpIntCoef, d.GetAllocator());
+
+  rootObj.AddMember("pitchBias", contVals.pitchBias, d.GetAllocator());
+  rootObj.AddMember("rollBias", contVals.rollBias, d.GetAllocator());
+  rootObj.AddMember("yawSpeedBias", contVals.yawSpeedBias, d.GetAllocator());
+
+  rootObj.AddMember("accTrust", contVals.accTrust, d.GetAllocator());
+  rootObj.AddMember("inclineChangeRateFilteringCoef", contVals.inclineChangeRateFilteringCoef, d.GetAllocator());
+  rootObj.AddMember("yawSpeedFilteringCoef", contVals.yawSpeedFilteringCoef, d.GetAllocator());
+  rootObj.AddMember("yawSpeedChangeRateFilteringCoef", contVals.yawSpeedChangeRateFilteringCoef, d.GetAllocator());
+  
+  rootObj.AddMember("onlyPositiveAdjustMode", contVals.onlyPositiveAdjustMode, d.GetAllocator());
+
+  StringBuffer buffer;
+  Writer<StringBuffer> writer(buffer);
+  d.Accept(writer);
+  const char * json = buffer.GetString();
+  uint32_t size = buffer.GetSize();
+  file.write(json, size);
+  file.close();
+}
+
+void Window::loadProfile()
+{
+  using namespace rapidjson;
+  std::string fname = filename;
+  fname = "profiles/" + fname;
+  std::ifstream file(fname);
+  if (!file.is_open())
+  {
+    std::cout << "can't open file " << fname << "\n";
+    return;
+  }
+  std::string json;
+  while (file)
+  {
+    std::string line;
+    std::getline(file, line);
+    json += line;
+  }
+  file.close();
+  Document d;
+  d.Parse(json.c_str());
+
+  contVals.pitchPropCoef = d["pitchPropCoef"].GetFloat();
+  contVals.pitchDerCoef = d["pitchDerCoef"].GetFloat();
+  contVals.pitchIntCoef = d["pitchIntCoef"].GetFloat();
+
+  contVals.rollPropCoef = d["rollPropCoef"].GetFloat();
+  contVals.rollDerCoef = d["rollDerCoef"].GetFloat();
+  contVals.rollIntCoef = d["rollIntCoef"].GetFloat();
+
+  contVals.yawSpPropCoef = d["yawSpPropCoef"].GetFloat();
+  contVals.yawSpDerCoef = d["yawSpDerCoef"].GetFloat();
+  contVals.yawSpIntCoef = d["yawSpIntCoef"].GetFloat();
+
+  contVals.pitchBias = d["pitchBias"].GetFloat();
+  contVals.rollBias = d["rollBias"].GetFloat();
+  contVals.yawSpeedBias = d["yawSpeedBias"].GetFloat();
+
+  contVals.accTrust = d["accTrust"].GetFloat();
+  contVals.inclineChangeRateFilteringCoef = d["inclineChangeRateFilteringCoef"].GetFloat();
+  contVals.yawSpeedFilteringCoef = d["yawSpeedFilteringCoef"].GetFloat();
+  contVals.yawSpeedChangeRateFilteringCoef = d["yawSpeedChangeRateFilteringCoef"].GetFloat();
+
+  contVals.onlyPositiveAdjustMode = d["onlyPositiveAdjustMode"].GetBool();
 }

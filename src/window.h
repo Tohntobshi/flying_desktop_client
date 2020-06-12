@@ -80,4 +80,7 @@ private:
   ControlledValues prevContVals;
   void compareControlledValsAndSendCommands();
   void resetContValues();
+  void saveProfile();
+  void loadProfile();
+  char filename[128];
 };
